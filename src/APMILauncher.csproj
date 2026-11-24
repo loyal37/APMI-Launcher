@@ -11,6 +11,7 @@
     <RootNamespace>ApmiLauncher</RootNamespace>
     <Version>0.1.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\launcher-icon.ico</ApplicationIcon>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowedReferenceRelatedFileExtensions>.none</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
@@ -18,6 +19,7 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="assets\launcher-icon.ico" />
     <EmbeddedResource Include="ui\index.html" LogicalName="ApmiLauncher.ui.index.html" />
     <EmbeddedResource Include="ui\styles.css" LogicalName="ApmiLauncher.ui.styles.css" />
     <EmbeddedResource Include="ui\app.js" LogicalName="ApmiLauncher.ui.app.js" />
