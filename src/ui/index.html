@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APMI Launcher</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app" class="launcher-shell" data-drag-region="true">
+    <!-- Full-bleed Wallpaper Stage -->
+    <div class="wallpaper-stage" data-drag-region="true">
+      <video id="bg-video" class="wallpaper-media hidden" autoplay loop muted playsinline preload="auto"></video>
+      <img id="bg-image" class="wallpaper-media wallpaper-image hidden" alt="" draggable="false" />
+      <div class="wallpaper-fallback" id="bg-fallback"></div>
+      <!-- Subtle corner scrims so top-right controls & bottom-right version stay crisp -->
+      <div class="scrim scrim-top-right"></div>
+      <div class="scrim scrim-bottom-right"></div>
+    </div>
+
+    <!-- Top-Right Control Bar (Wallpaper Toggle, Settings Button, Minimize, Close) -->
+    <header class="top-bar" data-drag-region="true">
+      <div class="top-controls">
+        <div class="control-group">
+          <button id="bg-toggle-btn" class="glass-circle-btn" type="button" aria-label="Toggle live or static background">
+            <svg id="icon-pause" class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="7" y="5.5" width="3.2" height="13" rx="1.4" />
+              <rect x="13.8" y="5.5" width="3.2" height="13" rx="1.4" />
+            </svg>
+            <svg id="icon-play" class="icon hidden" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8.5 5.8c0-1 1.1-1.6 2-1.1l8.6 5.2c.8.5.8 1.7 0 2.2l-8.6 5.2c-.9.5-2-.1-2-1.1V5.8z" />
+            </svg>
+          </button>
+          <div id="bg-tooltip" class="floating-bubble" role="tooltip">Switch to Static Background</div>
+        </div>
+
+        <div class="control-group">
+          <button id="settings-btn" class="glass-circle-btn" type="button" aria-label="Settings">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.1" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          <div class="floating-bubble floating-bubble-compact" role="tooltip">Settings</div>
+        </div>
+
+        <span class="top-divider" aria-hidden="true"></span>
+
+        <button id="minimize-btn" class="window-ctrl-btn" type="button" aria-label="Minimize" title="Minimize">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+
+        <button id="close-btn" class="window-ctrl-btn window-ctrl-close" type="button" aria-label="Close" title="Close">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Transient Status Toast (Hidden while idle; appears cleanly during launch or errors) -->
+    <aside id="status-toast" class="status-toast hidden" aria-live="polite">
+      <span id="status-dot" class="status-dot"></span>
+      <div class="status-body">
+        <div class="status-head">
+          <span id="status-stage" class="status-stage"></span>
+          <span id="status-detail" class="status-detail hidden"></span>
+        </div>
+        <p id="status-message" class="status-message"></p>
+      </div>
+      <div class="status-actions">
+        <button id="toast-action-btn" class="toast-link-btn hidden" type="button"></button>
+        <button id="toast-dismiss-btn" class="toast-close-btn hidden" type="button" aria-label="Dismiss notification">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Bottom-Right Launch Area (Official Launcher Style) -->
+    <section class="launch-dock">
+      <div class="launch-row">
+        <button id="cancel-btn" class="cancel-pill-btn hidden" type="button">Cancel</button>
+
+        <div class="start-column">
+          <button id="start-btn" class="start-pill-btn" type="button">
+            <span class="start-badge" aria-hidden="true">
+              <span id="start-letter" class="start-badge-letter">A</span>
+              <span id="start-spinner" class="start-spinner hidden"></span>
+            </span>
+            <span id="start-label" class="start-label">Start Game</span>
+          </button>
+          <div id="launcher-version" class="version-caption">Launcher v0.1.0</div>
+        </div>
+
+        <div class="menu-anchor">
+          <button id="menu-btn" class="menu-circle-btn" type="button" aria-label="More Options" aria-haspopup="true" aria-expanded="false">
+            <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <line x1="5" y1="7" x2="19" y2="7" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <line x1="5" y1="17" x2="19" y2="17" />
+            </svg>
+          </button>
+
+          <!-- Upward Popover Menu anchored above the Three-Bar Button -->
+          <div id="more-menu" class="more-menu hidden" role="menu">
+            <button id="open-mods-btn" class="more-menu-item" type="button" role="menuitem">
+              <span class="menu-item-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 7a2 2 0 0 1 2-2h4.2a2 2 0 0 1 1.5.68L12 7.2h7a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                </svg>
+              </span>
+              <span class="menu-item-text">
+                <span class="menu-item-title">Mods Folder</span>
+                <span class="menu-item-sub">Open Mods directory</span>
+              </span>
+            </button>
+
+            <button id="open-logs-btn" class="more-menu-item" type="button" role="menuitem">
+              <span class="menu-item-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 3 14 8 19 8" />
+                  <line x1="9" y1="13" x2="15" y2="13" />
+                  <line x1="9" y1="17" x2="13" y2="17" />
+                </svg>
+              </span>
+              <span class="menu-item-text">
+                <span class="menu-item-title">Open Logs</span>
+                <span class="menu-item-sub">View launch &amp; session logs</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Frosted-Glass Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h2 id="settings-title" class="modal-title">Settings</h2>
+            <span id="modal-runtime-badge" class="runtime-badge hidden"></span>
+          </div>
+          <button id="settings-close-btn" class="modal-close-btn" type="button" aria-label="Close Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="field-group">
+            <label class="field-label" for="input-game-path">Game Executable</label>
+            <div class="input-row">
+              <input id="input-game-path" class="text-input" type="text" spellcheck="false" autocomplete="off" placeholder="Select AzurPromilia.exe" />
+              <button class="browse-btn" type="button" data-browse="game">Browse</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="input-official-path">Official Launcher</label>
+            <div class="input-row">
+              <input id="input-official-path" class="text-input" type="text" spellcheck="false" autocomplete="off" placeholder="Select launcher.exe" />
+              <button class="browse-btn" type="button" data-browse="official">Browse</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="input-runtime-path">APMI Package</label>
+            <div class="input-row">
+              <input id="input-runtime-path" class="text-input" type="text" spellcheck="false" autocomplete="off" placeholder="Select the APMI package folder" />
+              <button id="browse-runtime-btn" class="browse-btn" type="button" data-browse="runtime">Browse</button>
+            </div>
+          </div>
+
+          <div class="field-group" id="wallpaper-source-group">
+            <span class="field-label">Background Wallpaper</span>
+            <div class="segmented-control" role="radiogroup" aria-label="Background Wallpaper">
+              <button id="wp-video-btn" class="seg-btn active" type="button" data-wallpaper="video">Live Video</button>
+              <button id="wp-image-btn" class="seg-btn" type="button" data-wallpaper="image">Static Art</button>
+            </div>
+          </div>
+
+          <p class="field-hint">Windows will request administrator permission when launching to load the APMI package.</p>
+          <p id="settings-error" class="settings-error hidden"></p>
+        </div>
+
+        <div class="modal-footer">
+          <button id="settings-cancel-btn" class="secondary-btn" type="button">Cancel</button>
+          <button id="settings-save-btn" class="primary-btn" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
