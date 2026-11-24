@@ -82,7 +82,7 @@ internal sealed class LauncherSession(string directory)
                 throw new LaunchFailure("Checking", $"Game is already running (PID {existing.Id}). Close the game and try again.", "AlreadyRunning");
             settings.PrepareRuntime(directory);
             var dllVersion = FileVersionInfo.GetVersionInfo(dllPath).FileVersion;
-            Diagnostic($"Launcher 0.1.0; elevated={IsElevated()}; XXMI DLL={dllVersion}");
+            Diagnostic($"Launcher {typeof(LauncherSession).Assembly.GetName().Version}; elevated={IsElevated()}; XXMI DLL={dllVersion}");
             Diagnostic("Target=" + gamePath);
             Diagnostic("DLL=" + dllPath);
             var startedAfter = DateTime.UtcNow.ToFileTimeUtc();

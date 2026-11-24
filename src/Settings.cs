@@ -7,9 +7,9 @@ namespace ApmiLauncher;
 
 public sealed record LauncherSettings
 {
-    public string GameExe { get; init; } = @"F:\AzurPromilia\AzurPromilia_Game\AzurPromilia.exe";
-    public string OfficialLauncher { get; init; } = @"F:\AzurPromilia\1.0.1.1\launcher.exe";
-    public string RuntimeDirectory { get; init; } = Path.Combine(AppContext.BaseDirectory, "APMI");
+    public string GameExe { get; init; } = "";
+    public string OfficialLauncher { get; init; } = "";
+    public string RuntimeDirectory { get; init; } = "";
     public int ProcessTimeoutSeconds { get; init; } = 180;
     public int InitializationTimeoutSeconds { get; init; } = 45;
     public bool StaticBackground { get; init; }
@@ -30,6 +30,9 @@ public sealed record LauncherSettings
 
     public void Validate()
     {
+        if (string.IsNullOrWhiteSpace(GameExe) || string.IsNullOrWhiteSpace(OfficialLauncher) ||
+            string.IsNullOrWhiteSpace(RuntimeDirectory))
+            throw new LaunchFailure("Config Check", "Please select the game, official launcher and APMI package paths in Settings.", "ValidatePaths");
         Native.RequireX64(GameExe, false);
         if (!Path.IsPathFullyQualified(OfficialLauncher) || !File.Exists(OfficialLauncher))
             throw new LaunchFailure("Config Check", "Official launcher not found. Please select launcher.exe in Settings.", "ValidateLauncher");

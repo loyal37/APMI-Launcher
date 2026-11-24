@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     private LauncherSettings settings = new();
     private string? sessionDirectory;
     private string? wallpapersDirectory;
-    private string launcherVersion = "0.1.0";
+    private string launcherVersion = "0.1.1";
     private string runtimeVersion = "";
     private string? startupConfigError;
     private bool busy;
@@ -211,6 +211,11 @@ public partial class MainWindow : Window
                     CancelLaunch();
                     break;
                 case "openMods":
+                    if (!Path.IsPathFullyQualified(settings.RuntimeDirectory) || !Directory.Exists(settings.RuntimeDirectory))
+                    {
+                        SendStatus(false, false, "warning", "Check Settings", "Please select the APMI package folder in Settings.", "", true);
+                        break;
+                    }
                     OpenFolder(Path.Combine(settings.RuntimeDirectory, "Mods"));
                     break;
                 case "openLogs":
@@ -602,7 +607,7 @@ public partial class MainWindow : Window
             return plus > 0 ? info[..plus] : info;
         }
         var version = assembly.GetName().Version;
-        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.1.0";
+        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.1.1";
     }
 
     private static string ReadRuntimeVersion(string runtimeDirectory)

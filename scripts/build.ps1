@@ -1,16 +1,17 @@
 param(
-    [string]$EfmiSource = 'D:\XXMI-Launcher-Portable-v2.1.6\EFMI',
+    [string]$EfmiSource,
     [switch]$SelfContained
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $output = Join-Path $projectRoot 'dist'
-$publishArgs = @('publish', (Join-Path $projectRoot 'src\APMILauncher.csproj'), '-c', 'Release', '-o', $output, '--self-contained', $SelfContained.IsPresent.ToString().ToLowerInvariant(), '-p:PublishSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true')
+$publishArgs = @('publish', (Join-Path $projectRoot 'src\APMILauncher.csproj'), '-c', 'Release', '-o', $output, '--self-contained', $SelfContained.IsPresent.ToString().ToLowerInvariant(), '-p:PublishSingleFile=false')
 & dotnet @publishArgs
 if ($LASTEXITCODE -ne 0) { throw 'Launcher compilation failed.' }
 
 $runtime = Join-Path $output 'APMI'
 if (-not (Test-Path -LiteralPath $runtime)) {
+    if ([string]::IsNullOrWhiteSpace($EfmiSource)) { throw 'Supply -EfmiSource with an existing EFMI package folder for the first build.' }
     $source = (Resolve-Path -LiteralPath $EfmiSource).Path
     foreach ($relative in @('d3d11.dll', 'd3dcompiler_47.dll', 'd3dx.ini', 'Core\EFMI\main.ini')) {
         if (-not (Test-Path -LiteralPath (Join-Path $source $relative))) { throw "Incomplete EFMI source: $relative" }

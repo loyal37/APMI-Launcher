@@ -2,7 +2,7 @@
   const webview = window.chrome?.webview;
 
   const state = {
-    launcherVersion: "0.1.0",
+    launcherVersion: "0.1.1",
     runtimeVersion: "",
     settings: {
       gameExe: "",
@@ -360,7 +360,7 @@
 
     switch (msg.type) {
       case "init":
-        state.launcherVersion = msg.launcherVersion || "0.1.0";
+        state.launcherVersion = msg.launcherVersion || "0.1.1";
         state.runtimeVersion = msg.runtimeVersion || "";
         if (msg.settings) state.settings = { ...state.settings, ...msg.settings };
         if (msg.wallpaper) state.wallpaper = { ...state.wallpaper, ...msg.wallpaper };

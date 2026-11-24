@@ -4,7 +4,9 @@ A Windows x64 launcher for Azur Promilia, using a local copy of EFMI 1.5.1 and X
 
 The interface uses HTML, CSS and JavaScript embedded in a WebView2 control, with a C# / WPF host on .NET 9. It supports a live video wallpaper, static artwork, saved background preferences, and native file and folder pickers.
 
-Run `dist/APMI Launcher.exe`, open **Settings**, and select the game executable, official launcher executable and **APMI Package** folder. The package folder contains `d3d11.dll`, `d3dcompiler_47.dll`, `d3dx.ini` and `Core/EFMI/main.ini`. The default working copy is `dist/APMI`; an existing EFMI package directory can also be selected. Select **Start Game**, approve the Windows administrator prompt, then start the game in the official launcher. The APMI window reports launch progress, Windows errors and runtime initialization.
+Extract the entire release folder and run `APMI Launcher.exe` (`dist/APMI Launcher.exe` for local builds). On first launch, all three paths in **Settings** are empty. Select the game executable, official launcher executable and **APMI Package** folder, then save. For the included package, select the `APMI` folder next to the launcher; an existing EFMI package directory can also be selected. It contains `d3d11.dll`, `d3dcompiler_47.dll`, `d3dx.ini` and `Core/EFMI/main.ini`. Saved settings are reused on subsequent launches. Select **Start Game**, approve the Windows administrator prompt, then start the game in the official launcher. The APMI window reports launch progress, Windows errors and runtime initialization.
+
+Starting with v0.1.1, the Windows release uses a small EXE with separate application and .NET runtime DLLs. Keep the entire extracted folder together; copying only the EXE will not work. The release includes .NET, while Microsoft Edge WebView2 Runtime is still required.
 
 The launcher matches the configured executable's full path, Windows session, and creation time. It uses a standard remote `LoadLibraryW` call, resolving the function from its actual provider module. It confirms the exact DLL path in the target process, then checks a fresh runtime log for the exact game path. The initialized status describes DLL initialization. A visible 3DMigoto overlay or game frame capture is the additional evidence of graphics interception.
 
@@ -24,7 +26,7 @@ Requires the .NET 9 SDK. Running a regular build requires the .NET 9 Desktop Run
 ./scripts/build.ps1 -EfmiSource 'C:\XXMI Launcher\EFMI'
 ```
 
-Use `-EfmiSource <folder>` for the initial runtime copy, or `-SelfContained` to publish a portable build with .NET included. Building again preserves the existing working runtime.
+Use `-EfmiSource <folder>` for the initial runtime copy. Add `-SelfContained` to publish with the .NET runtime included as separate DLLs. Both modes publish a folder containing the EXE and its dependencies. Building again preserves the existing working runtime and saved settings.
 
 The build copies the artwork from `wallpapers/` into `dist/wallpapers/`. WebView2 Runtime is still required for self-contained .NET builds. See [third-party notices](THIRD_PARTY_NOTICES.md) for runtime and artwork attribution.
 
