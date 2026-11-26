@@ -2,12 +2,13 @@
   const webview = window.chrome?.webview;
 
   const state = {
-    launcherVersion: "0.1.1",
+    launcherVersion: "0.2.0",
     runtimeVersion: "",
     settings: {
       gameExe: "",
       officialLauncher: "",
       runtimeDirectory: "",
+      enableMcp: false,
       staticBackground: false,
       wallpaperSource: "video"
     },
@@ -60,6 +61,7 @@
     inputGamePath: document.getElementById("input-game-path"),
     inputOfficialPath: document.getElementById("input-official-path"),
     inputRuntimePath: document.getElementById("input-runtime-path"),
+    inputEnableMcp: document.getElementById("input-enable-mcp"),
     wallpaperSourceGroup: document.getElementById("wallpaper-source-group"),
     wpVideoBtn: document.getElementById("wp-video-btn"),
     wpImageBtn: document.getElementById("wp-image-btn"),
@@ -135,6 +137,7 @@
     els.inputGamePath.value = state.settings.gameExe || "";
     els.inputOfficialPath.value = state.settings.officialLauncher || "";
     els.inputRuntimePath.value = state.settings.runtimeDirectory || "";
+    els.inputEnableMcp.checked = Boolean(state.settings.enableMcp);
     state.draftWallpaperSource = state.settings.wallpaperSource === "image" ? "image" : "video";
     updateDraftWallpaperButtons();
 
@@ -348,6 +351,7 @@
       gameExe: els.inputGamePath.value.trim(),
       officialLauncher: els.inputOfficialPath.value.trim(),
       runtimeDirectory: els.inputRuntimePath.value.trim(),
+      enableMcp: els.inputEnableMcp.checked,
       wallpaperSource: state.draftWallpaperSource,
       staticBackground: nextStatic
     });
@@ -360,7 +364,7 @@
 
     switch (msg.type) {
       case "init":
-        state.launcherVersion = msg.launcherVersion || "0.1.1";
+        state.launcherVersion = msg.launcherVersion || "0.2.0";
         state.runtimeVersion = msg.runtimeVersion || "";
         if (msg.settings) state.settings = { ...state.settings, ...msg.settings };
         if (msg.wallpaper) state.wallpaper = { ...state.wallpaper, ...msg.wallpaper };

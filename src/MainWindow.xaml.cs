@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     private LauncherSettings settings = new();
     private string? sessionDirectory;
     private string? wallpapersDirectory;
-    private string launcherVersion = "0.1.1";
+    private string launcherVersion = "0.2.0";
     private string runtimeVersion = "";
     private string? startupConfigError;
     private bool busy;
@@ -486,12 +486,16 @@ public partial class MainWindow : Window
             var wallpaperSource = root.TryGetProperty("wallpaperSource", out var w) && w.GetString() is "video" or "image"
                 ? w.GetString()!
                 : settings.WallpaperSource;
+            var enableMcp = root.TryGetProperty("enableMcp", out var m) && m.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? m.GetBoolean()
+                : settings.EnableMcp;
 
             var updated = settings with
             {
                 GameExe = gameExe,
                 OfficialLauncher = officialLauncher,
                 RuntimeDirectory = runtimeDirectory,
+                EnableMcp = enableMcp,
                 StaticBackground = staticBackground,
                 WallpaperSource = wallpaperSource
             };
@@ -593,6 +597,7 @@ public partial class MainWindow : Window
         gameExe = s.GameExe,
         officialLauncher = s.OfficialLauncher,
         runtimeDirectory = s.RuntimeDirectory,
+        enableMcp = s.EnableMcp,
         staticBackground = s.StaticBackground,
         wallpaperSource = s.WallpaperSource
     };
@@ -607,7 +612,7 @@ public partial class MainWindow : Window
             return plus > 0 ? info[..plus] : info;
         }
         var version = assembly.GetName().Version;
-        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.1.1";
+        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.2.0";
     }
 
     private static string ReadRuntimeVersion(string runtimeDirectory)

@@ -126,63 +126,70 @@ internal static class Native
         return result;
     }
 
-    internal static async Task<List<TargetModule>> WaitForModules(GameProcess game, SafeProcessHandle process)
+    internal static async Task<List<TargetModule>> WaitForModules(GameProcess game, SafeProcessHandle process,
+        string? requiredPath = null, string stage = "Loading EFMI")
     {
         var watch = Stopwatch.StartNew();
         while (true)
         {
             EnsureAlive(process);
-            try { return Modules(game.Id); }
+            try
+            {
+                var modules = Modules(game.Id);
+                if (requiredPath == null || modules.Any(module => string.Equals(module.Path, requiredPath, StringComparison.OrdinalIgnoreCase)))
+                    return modules;
+            }
             catch (LaunchFailure error) when (error.Error is 18 or 24 or 299 && watch.Elapsed.TotalSeconds < 3)
-            { await Task.Delay(30); }
+            { }
+            if (watch.Elapsed.TotalSeconds >= 3)
+                throw new LaunchFailure(stage, "Timed out waiting for the system loader module in the game process.", "ResolveLoadLibrary");
+            await Task.Delay(30);
         }
     }
 
-    internal static async Task LoadLibrary(GameProcess game, SafeProcessHandle process, string dll, Action<string> diagnostic)
+    internal static async Task LoadLibrary(GameProcess game, SafeProcessHandle process, string dll, Action<string> diagnostic, string stage = "Loading EFMI")
     {
-        var modules = await WaitForModules(game, process);
+        var localFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
+        if (localFunction == 0) ThrowWin32(stage, "GetProcAddress (LoadLibraryW)");
+        if (!GetModuleHandleEx(0x4 | 0x2, localFunction, out var provider)) ThrowWin32(stage, "GetModuleHandleEx");
+        var providerPath = new StringBuilder(32768);
+        if (GetModuleFileName(provider, providerPath, providerPath.Capacity) == 0) ThrowWin32(stage, "GetModuleFileName");
+        var modules = await WaitForModules(game, process, providerPath.ToString(), stage);
         var systemD3D = modules.FirstOrDefault(module => Path.GetFileName(module.Path).Equals("d3d11.dll", StringComparison.OrdinalIgnoreCase));
         if (systemD3D != null) diagnostic("D3D11 already mapped before load: " + systemD3D.Path);
-        var localFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
-        if (localFunction == 0) ThrowWin32("Loading EFMI", "GetProcAddress (LoadLibraryW)");
-        if (!GetModuleHandleEx(0x4 | 0x2, localFunction, out var provider)) ThrowWin32("Loading EFMI", "GetModuleHandleEx");
-        var providerPath = new StringBuilder(32768);
-        if (GetModuleFileName(provider, providerPath, providerPath.Capacity) == 0) ThrowWin32("Loading EFMI", "GetModuleFileName");
-        var remoteProvider = modules.FirstOrDefault(module => string.Equals(module.Path, providerPath.ToString(), StringComparison.OrdinalIgnoreCase));
-        if (remoteProvider == null)
-            throw new LaunchFailure("Loading EFMI", "System module not yet mapped in target process.", "ResolveLoadLibrary");
+        var remoteProvider = modules.First(module => string.Equals(module.Path, providerPath.ToString(), StringComparison.OrdinalIgnoreCase));
         var remoteFunction = remoteProvider.Base + (localFunction - provider);
         var pathBytes = Encoding.Unicode.GetBytes(Path.GetFullPath(dll) + '\0');
         var allocation = VirtualAllocEx(process, 0, (nuint)pathBytes.Length, 0x3000, 0x04);
-        if (allocation == 0) ThrowWin32("Loading EFMI", "VirtualAllocEx");
+        if (allocation == 0) ThrowWin32(stage, "VirtualAllocEx");
         var argumentInUse = false;
         try
         {
             if (!WriteProcessMemory(process, allocation, pathBytes, (nuint)pathBytes.Length, out var written))
-                ThrowWin32("Loading EFMI", "WriteProcessMemory");
-            if (written != (nuint)pathBytes.Length) throw Failure("Loading EFMI", "WriteProcessMemory", 299);
+                ThrowWin32(stage, "WriteProcessMemory");
+            if (written != (nuint)pathBytes.Length) throw Failure(stage, "WriteProcessMemory", 299);
             using var thread = CreateRemoteThread(process, 0, 0, remoteFunction, allocation, 0, out _);
-            if (thread.IsInvalid) ThrowWin32("Loading EFMI", "CreateRemoteThread");
+            if (thread.IsInvalid) ThrowWin32(stage, "CreateRemoteThread");
             argumentInUse = true;
             var watch = Stopwatch.StartNew();
             while (true)
             {
                 var wait = WaitForSingleObject(thread, 0);
                 if (wait == 0) { argumentInUse = false; break; }
-                if (wait != WaitTimeout) ThrowWin32("Loading EFMI", "WaitForSingleObject");
+                if (wait != WaitTimeout) ThrowWin32(stage, "WaitForSingleObject");
                 EnsureAlive(process);
                 if (watch.Elapsed.TotalSeconds >= 20)
-                    throw new LaunchFailure("Loading EFMI", "Timed out waiting for DLL loader thread.", "LoadLibraryTimeout");
+                    throw new LaunchFailure(stage, "Timed out waiting for DLL loader thread.", "LoadLibraryTimeout");
                 await Task.Delay(50);
             }
             EnsureAlive(process);
-            if (!GetExitCodeThread(thread, out var exitCode)) ThrowWin32("Loading EFMI", "GetExitCodeThread");
+            if (!GetExitCodeThread(thread, out var exitCode)) ThrowWin32(stage, "GetExitCodeThread");
             diagnostic($"LoadLibrary thread exit value: 0x{exitCode:X8}");
             var fullDll = CanonicalPath(dll);
             var loaded = (await WaitForModules(game, process))
                 .Any(module => string.Equals(CanonicalPath(module.Path), fullDll, StringComparison.OrdinalIgnoreCase));
             if (!loaded)
-                throw new LaunchFailure("Loading EFMI", $"EFMI DLL not found in target process (thread returned 0x{exitCode:X8}).", "VerifyModule");
+                throw new LaunchFailure(stage, $"DLL {Path.GetFileName(dll)} not found in target process (thread returned 0x{exitCode:X8}).", "VerifyModule");
             diagnostic("Verified exact DLL path in target process: " + fullDll);
         }
         finally

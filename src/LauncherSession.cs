@@ -17,6 +17,8 @@ public sealed record SessionState
     public int Win32Error { get; init; }
     public int GamePid { get; init; }
     public bool Elevated { get; init; }
+    public bool McpEnabled { get; init; }
+    public bool McpReady { get; init; }
     public DateTimeOffset UpdatedAt { get; init; } = DateTimeOffset.Now;
 }
 
@@ -62,6 +64,7 @@ internal sealed class LauncherSession(string directory)
         {
             Report("checking", "Checking", "Checking game and EFMI package.");
             var settings = LauncherSettings.Read(Path.Combine(directory, "request.json"));
+            state = state with { McpEnabled = settings.EnableMcp };
             settings.Validate();
             var gamePath = Native.CanonicalPath(settings.GameExe);
             var dllPath = Native.CanonicalPath(Path.Combine(settings.RuntimeDirectory, "d3d11.dll"));
@@ -107,10 +110,24 @@ internal sealed class LauncherSession(string directory)
             CheckCancelled();
             Report("loading", "Loading EFMI", $"Game detected (PID {game.Id}). Loading EFMI…");
             using var process = Native.OpenGame(game);
+            if (settings.EnableMcp)
+            {
+                Report("loading", "Loading MCP", "Loading the live capture probe…");
+                await Native.LoadLibrary(game, process, LauncherSettings.McpProbePath, Diagnostic, "Loading MCP");
+            }
             await Native.LoadLibrary(game, process, dllPath, Diagnostic);
             Report("verifying", "Verifying", "DLL loaded into game. Waiting for initialization log…");
             await WaitForInitialization(settings, process);
-            Report("initialized", "EFMI Ready", "EFMI initialized successfully. Check the in-game overlay.");
+            if (settings.EnableMcp)
+            {
+                Report("verifying", "Connecting MCP", "Waiting for the capture probe to attach to rendering…");
+                var status = await McpProbe.WaitForReady(game, settings, process, CheckCancelled);
+                AtomicFile.Write(Path.Combine(directory, "mcp-status.json"), status);
+                state = state with { McpReady = true };
+                Diagnostic("Verified MCP process, runtime path, D3D11 device and swap chain.");
+            }
+            Report("initialized", settings.EnableMcp ? "APMI + MCP Ready" : "EFMI Ready",
+                settings.EnableMcp ? "APMI initialized. Live MCP capture is ready." : "EFMI initialized successfully. Check the in-game overlay.");
             return 0;
         }
         catch (OperationCanceledException)

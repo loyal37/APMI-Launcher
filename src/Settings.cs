@@ -14,8 +14,11 @@ public sealed record LauncherSettings
     public int InitializationTimeoutSeconds { get; init; } = 45;
     public bool StaticBackground { get; init; }
     public string WallpaperSource { get; init; } = "video";
+    public bool EnableMcp { get; init; }
 
     public static string DataDirectory => Path.Combine(AppContext.BaseDirectory, "data");
+    public static string McpDirectory => Path.Combine(AppContext.BaseDirectory, "mcp");
+    public static string McpProbePath => Path.Combine(McpDirectory, "dist", "apmi_probe.dll");
     public static string SettingsPath => Path.Combine(DataDirectory, "settings.json");
     public static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -38,11 +41,21 @@ public sealed record LauncherSettings
             throw new LaunchFailure("Config Check", "Official launcher not found. Please select launcher.exe in Settings.", "ValidateLauncher");
         Native.RequireX64(Path.Combine(RuntimeDirectory, "d3d11.dll"), true);
         Native.RequireX64(Path.Combine(RuntimeDirectory, "d3dcompiler_47.dll"), true);
-        foreach (var relative in new[] { "d3dx.ini", @"Core\EFMI\main.ini" })
+        foreach (var relative in new[] { "d3dx.ini" })
             if (!File.Exists(Path.Combine(RuntimeDirectory, relative)))
                 throw new LaunchFailure("Config Check", "APMI package is missing required files.", relative);
+        if (!File.Exists(Path.Combine(RuntimeDirectory, @"Core\APMI\main.ini")) &&
+            !File.Exists(Path.Combine(RuntimeDirectory, @"Core\EFMI\main.ini")))
+            throw new LaunchFailure("Config Check", "APMI package is missing its Core entry point.", "ValidateCore");
         if (ProcessTimeoutSeconds is < 1 or > 600 || InitializationTimeoutSeconds is < 1 or > 120)
             throw new InvalidDataException("Invalid timeout in settings.");
+        if (EnableMcp)
+        {
+            Native.RequireX64(McpProbePath, true);
+            foreach (var relative in new[] { "server.py", @"dist\efmi_probe.ini" })
+                if (!File.Exists(Path.Combine(McpDirectory, relative)))
+                    throw new LaunchFailure("Config Check", "MCP files are missing. Rebuild or extract the complete launcher package.", relative);
+        }
     }
 
     public void PrepareRuntime(string sessionDirectory)

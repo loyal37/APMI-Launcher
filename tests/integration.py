@@ -11,7 +11,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "dist" / "APMI Launcher.exe"
-RUNTIME = ROOT / "dist" / "APMI"
+RUNTIME = Path(os.environ.get("APMI_TEST_RUNTIME", str(ROOT / "dist" / "APMI"))).resolve()
 RUN = ROOT / "build" / "tests" / uuid.uuid4().hex[:10]
 RUN.mkdir(parents=True)
 HIDDEN = subprocess.CREATE_NO_WINDOW
@@ -31,7 +31,7 @@ def compile_fixtures():
         args = ["cl", "/nologo", "/std:c++17", "/EHsc", "/W4", "/WX", "/O2", "/MT", "/DUNICODE", "/D_UNICODE", "/utf-8", str(source), "/Fe:" + str(output)]
         if dll:
             args += ["/LD"]
-        args += ["/link", "user32.lib", "/SUBSYSTEM:WINDOWS"]
+        args += ["/link", "user32.lib", "d3dcompiler.lib", "/SUBSYSTEM:WINDOWS"]
         commands += ["@" + subprocess.list2cmdline(args), "@if errorlevel 1 exit /b %errorlevel%"]
     batch.write_text("\r\n".join(commands) + "\r\n", encoding="utf-8")
     subprocess.run(["cmd", "/d", "/c", str(batch)], cwd=RUN, creationflags=HIDDEN, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -42,7 +42,9 @@ def case(name, mode="normal", timeout=4):
     folder.mkdir()
     runtime = folder / "EFMI"
     shutil.copytree(RUNTIME, runtime,
-                    ignore=shutil.ignore_patterns("FrameAnalysis-*", "3DM-*.dmp", "d3d11_log.txt"))
+                    ignore=shutil.ignore_patterns("FrameAnalysis-*", "3DM-*.dmp", "d3d11_log.txt",
+                                                  ".git", ".ai-memory", "build", "test-output", "Mods", "__pycache__"))
+    (runtime / "Mods").mkdir(exist_ok=True)
     for filename in ("official.exe", "APMIDx11Test.exe"):
         shutil.copy2(RUN / "fixture.exe", folder / filename)
     target = folder / "APMIDx11Test.exe"
@@ -134,6 +136,8 @@ def main():
     assert Path(mapped).resolve() == (folder / "EFMI/d3d11.dll").resolve(), mapped
     assert "Verified exact DLL path" in (session / "launcher.log").read_text(encoding="utf-8")
     assert (session / "runtime-initialization.txt").exists()
+    assert not outcome.get("McpEnabled") and not outcome.get("McpReady")
+    assert (folder / "probe-loaded.txt").read_text().strip() == "0"
     print("PASS rendering 90 frames through the requested EFMI DLL", flush=True)
 
     folder, session, settings = case("timeout", "absent", 1)

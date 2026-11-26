@@ -1,8 +1,10 @@
 # Third-party components
 
+The live D3D11 probe and Python capture backend under vendor/efmi-mcp/ come from the project owner's EFMI MCP project. UPSTREAM.json records the source commit and file checksums. APMI adds process and package selection, its MCP tool entry points, and launcher integration. [EFMI MCP source](https://github.com/loyal37/EFMI-MCP)
+
 The launch workflow was informed by [EFMI Vulkan Launcher](https://github.com/loyal37/efmi-vulkan-launcher) and [XXMI Launcher](https://github.com/SpectrumQT/XXMI-Launcher). APMI Launcher source is licensed under GPL-3.0-or-later.
 
-- [EFMI-Package](https://github.com/SpectrumQT/EFMI-Package) supplies the local EFMI 1.5.1 package. It is GPL-3.0 licensed. The build copies its README and source assets into `dist/APMI`; runtime files are supplied locally and are not tracked in this repository.
+- [APMI Package](https://github.com/loyal37/APMI-Package) includes APMI Core and configuration based on [EFMI-Package](https://github.com/SpectrumQT/EFMI-Package), licensed under GPL-3.0. The bundled package includes the Core sources, license and provenance.
 - [XXMI-Libs](https://github.com/SpectrumQT/XXMI-Libs) supplies the user's local D3D11 runtime 1.3.3. Source and release information are available through [XXMI-Libs-Package](https://github.com/SpectrumQT/XXMI-Libs-Package).
 - `d3dcompiler_47.dll` is the Microsoft shader compiler supplied with the user's existing EFMI package.
 - .NET and Windows Desktop Runtime are Microsoft products. Their license notices accompany a self-contained .NET publication.

@@ -4,3 +4,4 @@ src/bin/
 src/obj/
 *.user
 __pycache__/
+vendor/efmi-mcp/probe/build/
